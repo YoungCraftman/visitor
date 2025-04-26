@@ -1,175 +1,341 @@
-<!DOCTYPE html>  
-<html lang="en">  
-<head>  
-<meta charset="UTF-8">  
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  
-<title>基准价格系数调整法</title>  
-<style>  
-    /* 样式保持不变，除了可能需要调整以适应新的布局 */  
-    body { font-family: Arial, sans-serif; }  
-    .container { max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; }  
-    h1 { text-align: center; }  
-    .input-group { margin-bottom: 10px; position: relative; }  
-    .input-group label { display: inline-block; width: 80px; margin-right: 10px; }  
-    .input-group input[type="number"] { width: calc(100% - 90px); }  
-    .input-group span { margin-left: 5px; }  
-    .score { color: green; }  
-    .delete-btn { position: absolute; right: 0; top: 0; }  
-    .copyright {  
-        text-align: center;  
-        margin-top: 20px;  
-        font-size: 1.0em;  
-        color: #666;  
-    }  
-</style>  
-</head>  
-<body>  
-<div class="container">  
-    <h1>基准价格系数调整法</h1>  
-    <div>  
-        <label for="weight">价格分权重：</label>  
-        <input type="number" id="weight" step="1" value="50">  
-    </div>  
-    <div id="participants-container"></div>  
-    <button onclick="addParticipant()">添加参选人</button>  
-    <button onclick="calculateScores()">计算得分</button>  
-</div>  
-<div class="copyright">  
-    &copy; 2024 王果. All rights reserved.  
-</div>  
-<script>  
-let bids = [];  
-let weightInput = null;  
-  
-function init() {  
-    weightInput = document.getElementById('weight');  
-    weight = parseFloat(weightInput.value);  
-  
-    // 初始添加几个参选人  
-    for (let i = 0; i < 3; i++) {  
-        addParticipant();  
-    }  
-  
-    // 为已添加的参选人添加删除按钮  
-    const containers = document.querySelectorAll('.input-group');  
-    containers.forEach((container, index) => {  
-        addDeleteButton(container);  
-    });  
-}  
-  
-function addParticipant() {  
-    const container = document.getElementById('participants-container');  
-    const newInput = document.createElement('div');  
-    newInput.className = 'input-group';  
-    newInput.id = `participant-${bids.length}`; // 为每个容器添加唯一ID  
-  
-    const label = document.createElement('label');  
-    label.textContent = `参选人：${bids.length + 1}`;  
-    newInput.appendChild(label);  
-  
-    const input = document.createElement('input');  
-    input.type = 'number';  
-    input.id = `bid-${bids.length}`;  
-    input.className = 'bid-input';  
-    newInput.appendChild(input);  
-  
-    const scoreSpan = document.createElement('span');  
-    scoreSpan.className = 'score';  
-    scoreSpan.textContent = '待计算';  
-    newInput.appendChild(scoreSpan);  
- 
-  
-   
-  
-    // 添加删除按钮  
-    addDeleteButton(newInput);  
-  
-    container.appendChild(newInput);  
-    bids.push({ input, scoreSpan });  
-}  
-  
-function addDeleteButton(container) {  
-    const deleteButton = document.createElement('button');  
-    deleteButton.className = 'delete-btn';  
-    deleteButton.textContent = '删除';  
-    deleteButton.onclick = () => removeParticipant(container.id.split('-')[1]);  
-    container.appendChild(deleteButton);  
-}  
-  
-function removeParticipant(index) {  
-    bids.splice(parseInt(index), 1); // 从数组中删除  
-    const container = document.getElementById(`participant-${index}`);  
-    container.remove(); // 从DOM中删除  
-}  
-  
-function calculateScores() {  
-    weight = parseFloat(weightInput.value); // 更新权重  
-    const bidValues = [];  
-    bids.forEach(bid => {  
-        const value = parseFloat(bid.input.value);  
-        if (!isNaN(value)) {  
-            bidValues.push(value);  
-        }  
-    });  
-  
-    if (bidValues.length === 0) {  
-        alert('没有有效的报价');  
-        return;  
-    }  
-  
-    const avg = bidValues.reduce((sum, value) => sum + value, 0) / bidValues.length;  
-    const thresholdHigh = avg * 1.5;  
-    const thresholdLow = avg * 0.75;  
-  
-    let filteredValues = bidValues.filter(value => value < thresholdHigh && value > thresholdLow);  
-    const benchmark = filteredValues.length ? filteredValues.reduce((sum, value) => sum + value, 0) / filteredValues.length : avg;  
-  
-    bids.forEach(bid => {  
-        const value = parseFloat(bid.input.value);  
-        if (isNaN(value)) {  
-            bid.scoreSpan.textContent = '无效报价';  
-            return;  
-        }  
-     if (value > thresholdHigh) {  
-        const score =  weight * 0.8 - ((value - benchmark) / benchmark) * 100 * 0.4;   
-        let finalScore = score.toFixed(2); 
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能访客预约系统</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --background: #f5f6fa;
+        }
 
-	if (parseFloat(finalScore) > 50) {  
-                finalScore = '50.00';  
-            } else if (parseFloat(finalScore) < 0) {  
-                finalScore = '0.00';  
-            }  
-        bid.scoreSpan.textContent = `异常高价得分：${finalScore}）`; 
-        } else if (value < thresholdLow) { 
-       const score =  weight * 0.8 - ((value - benchmark) / benchmark) * 100 * 0.4; 
-         let finalScore = score.toFixed(2); 
- 
-        if (parseFloat(finalScore) > 50) {  
-                finalScore = '50.00';  
-            } else if (parseFloat(finalScore) < 0) {  
-                finalScore = '0.00';  
-            }      
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            margin: 0;
+            padding: 20px;
+        }
 
-             bid.scoreSpan.textContent = `异常低价(得分：${finalScore}）`;  
-        } else {  
-            // 否则计算得分  
-            const score = weight * 0.8 - ((value - benchmark) / benchmark) * 100 * 0.4;  
-            let finalScore = score.toFixed(2);  
-  
-            // 添加得分限制  
-            if (parseFloat(finalScore) > 50) {  
-                finalScore = '50.00';  
-            } else if (parseFloat(finalScore) < 0) {  
-                finalScore = '0.00';  
-            }  
-  
-            bid.scoreSpan.textContent = `最终得分${finalScore}`;  
-        }  
-    });  
-}
- window.onload = init; // 使用init函数初始化   
-// 初始调用（可选）  
-// calculateScores();  
-</script>  
-</body>  
+        .container {
+            display: none;
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .active {
+            display: block;
+        }
+
+        .login-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-header h2 {
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        label::after {
+            content: "*";
+            color: #e74c3c;
+            margin-left: 4px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+        }
+
+        .secondary-btn {
+            background: #ecf0f1;
+            color: var(--primary-color);
+        }
+
+        .request-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .status {
+            float: right;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .pending { background: #f1c40f; color: #2c3e50; }
+        .approved { background: #2ecc71; color: white; }
+        .rejected { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="login" class="container active">
+        <div class="form-header">
+            <h2>智能访客管理系统</h2>
+            <p>请选择您的登录身份</p>
+        </div>
+        <div class="login-buttons">
+            <button class="primary-btn" onclick="showVisitorForm()">访客入口</button>
+            <button class="secondary-btn" onclick="showStaffLogin()">员工登录</button>
+        </div>
+    </div>
+
+    <!-- 员工登录 -->
+    <div id="staffLogin" class="container">
+        <div class="form-header">
+            <h2>员工登录</h2>
+        </div>
+        <form onsubmit="return staffLogin(event)">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="login-buttons">
+                <button class="primary-btn" type="submit">登录</button>
+                <button class="secondary-btn" type="button" onclick="showMainLogin()">返回</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 访客申请表单 -->
+    <div id="visitorForm" class="container">
+        <div class="form-header">
+            <h2>访客预约申请</h2>
+            <p>请填写完整预约信息（*为必填项）</p>
+        </div>
+        <form onsubmit="return submitApplication(event)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>申请人姓名</label>
+                    <input type="text" id="applicantName" required>
+                </div>
+                <div class="form-group">
+                    <label>受访人员</label>
+                    <input type="text" id="interviewee" required>
+                </div>
+                <div class="form-group">
+                    <label>来访时间</label>
+                    <input type="datetime-local" id="visitTime" required>
+                </div>
+                <div class="form-group">
+                    <label>联系电话</label>
+                    <input type="tel" id="phone" pattern="[0-9]{11}" required>
+                </div>
+                <div class="form-group">
+                    <label>公司/部门</label>
+                    <input type="text" id="company" required>
+                </div>
+                <div class="form-group">
+                    <label>申请人职务</label>
+                    <input type="text" id="position" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>来访事由</label>
+                <select id="purpose" required>
+                    <option value="">请选择来访事由</option>
+                    <option value="商务洽谈">商务洽谈</option>
+                    <option value="项目合作">项目合作</option>
+                    <option value="技术支持">技术支持</option>
+                    <option value="其他">其他</option>
+                </select>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>同行人数</label>
+                    <input type="number" id="companionNumber" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>同行人员姓名</label>
+                    <input type="text" id="companionNames" required>
+                </div>
+            </div>
+
+            <div class="login-buttons">
+                <button class="primary-btn" type="submit">提交申请</button>
+                <button class="secondary-btn" type="button" onclick="showMainLogin()">返回</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 员工审批界面 -->
+    <div id="approvalPanel" class="container">
+        <div class="form-header">
+            <h2>访客申请审批</h2>
+            <p>当前待处理申请列表</p>
+        </div>
+        <div id="requestsList"></div>
+        <div class="login-buttons">
+            <button class="secondary-btn" onclick="showMainLogin()">退出系统</button>
+        </div>
+    </div>
+
+    <script>
+        let requests = JSON.parse(localStorage.getItem('visitorRequests')) || [];
+
+        // 界面切换
+        function showContainer(id) {
+            document.querySelectorAll('.container').forEach(div => div.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function showMainLogin() { showContainer('login'); }
+        function showStaffLogin() { showContainer('staffLogin'); }
+        function showVisitorForm() { showContainer('visitorForm'); }
+
+        // 员工登录
+        function staffLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if(username === 'admin' && password === 'admin123') {
+                showApprovalPanel();
+                return true;
+            }
+            alert('登录失败，请检查用户名和密码');
+            return false;
+        }
+
+        // 显示审批面板
+        function showApprovalPanel() {
+            showContainer('approvalPanel');
+            renderRequests();
+        }
+
+        // 渲染申请列表
+        function renderRequests() {
+            const container = document.getElementById('requestsList');
+            container.innerHTML = '';
+            
+            requests.forEach((request, index) => {
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                card.innerHTML = `
+                    <div class="status ${getStatusClass(request.status)}">${request.status || '待审批'}</div>
+                    <h3>${request.applicantName}（${request.company}）</h3>
+                    <p>受访人：${request.interviewee}</p>
+                    <p>来访时间：${new Date(request.visitTime).toLocaleString()}</p>
+                    <p>联系电话：${request.phone}</p>
+                    <p>事由：${request.purpose}</p>
+                    <p>同行人员：${request.companionNumber}人（${request.companionNames}）</p>
+                    ${!request.status ? `
+                        <div style="margin-top:15px;">
+                            <button class="primary-btn" onclick="approveRequest(${index})">批准</button>
+                            <button class="secondary-btn" onclick="rejectRequest(${index})">拒绝</button>
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function getStatusClass(status) {
+            return status === '已批准' ? 'approved' : status === '已拒绝' ? 'rejected' : 'pending';
+        }
+
+        // 审批操作
+        function approveRequest(index) {
+            requests[index].status = '已批准';
+            updateStorage();
+            renderRequests();
+        }
+
+        function rejectRequest(index) {
+            requests[index].status = '已拒绝';
+            updateStorage();
+            renderRequests();
+        }
+
+        // 提交申请
+        function submitApplication(e) {
+            e.preventDefault();
+            
+            const newRequest = {
+                applicantName: document.getElementById('applicantName').value,
+                interviewee: document.getElementById('interviewee').value,
+                visitTime: document.getElementById('visitTime').value,
+                phone: document.getElementById('phone').value,
+                company: document.getElementById('company').value,
+                position: document.getElementById('position').value,
+                purpose: document.getElementById('purpose').value,
+                companionNumber: document.getElementById('companionNumber').value,
+                companionNames: document.getElementById('companionNames').value,
+                timestamp: new Date().toISOString()
+            };
+
+            requests.push(newRequest);
+            updateStorage();
+            alert('您的申请已成功提交，审批结果将通过短信通知');
+            showMainLogin();
+        }
+
+        function updateStorage() {
+            localStorage.setItem('visitorRequests', JSON.stringify(requests));
+        }
+    </script>
+</body>
 </html>
