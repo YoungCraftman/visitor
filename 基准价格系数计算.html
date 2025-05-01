@@ -122,6 +122,21 @@
         .pending { background: #f1c40f; color: #2c3e50; }
         .approved { background: #2ecc71; color: white; }
         .rejected { background: #e74c3c; color: white; }
+
+        /* 新增查询模块样式 */
+        .query-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .query-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body>
@@ -134,6 +149,7 @@
         <div class="login-buttons">
             <button class="primary-btn" onclick="showVisitorForm()">访客入口</button>
             <button class="secondary-btn" onclick="showStaffLogin()">员工登录</button>
+            <button class="secondary-btn" onclick="showQueryModule()">审批结果查询</button>
         </div>
     </div>
 
@@ -233,6 +249,25 @@
         </div>
     </div>
 
+    <!-- 新增审批查询模块 -->
+    <div id="queryModule" class="container">
+        <div class="form-header">
+            <h2>审批结果查询</h2>
+            <p>请输入申请人姓名查询审批状态</p>
+        </div>
+        <form onsubmit="return submitQueryForm(event)">
+            <div class="form-group">
+                <label>申请人姓名</label>
+                <input type="text" id="queryName" required>
+            </div>
+            <div class="login-buttons">
+                <button class="primary-btn" type="submit">立即查询</button>
+                <button class="secondary-btn" type="button" onclick="showMainLogin()">返回</button>
+            </div>
+        </form>
+        <div id="queryResult" class="query-result"></div>
+    </div>
+
     <script>
         let requests = JSON.parse(localStorage.getItem('visitorRequests')) || [];
 
@@ -245,6 +280,10 @@
         function showMainLogin() { showContainer('login'); }
         function showStaffLogin() { showContainer('staffLogin'); }
         function showVisitorForm() { showContainer('visitorForm'); }
+        function showQueryModule() { 
+            showContainer('queryModule');
+            document.getElementById('queryResult').innerHTML = '';
+        }
 
         // 员工登录
         function staffLogin(e) {
@@ -252,7 +291,7 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            if(username === 'admin' && password === 'admin') {
+            if(username === 'admin' && password === 'admin123') {
                 showApprovalPanel();
                 return true;
             }
@@ -331,6 +370,44 @@
             updateStorage();
             alert('您的申请已成功提交，审批结果将通过短信通知');
             showMainLogin();
+        }
+
+        // 处理查询请求
+        function submitQueryForm(e) {
+            e.preventDefault();
+            const queryName = document.getElementById('queryName').value.trim().toLowerCase();
+            if (!queryName) {
+                alert('请输入申请人姓名');
+                return false;
+            }
+
+            const results = requests.filter(r => 
+                r.applicantName.toLowerCase().includes(queryName)
+            );
+
+            const resultContainer = document.getElementById('queryResult');
+            resultContainer.innerHTML = '';
+
+            if (results.length === 0) {
+                resultContainer.innerHTML = '<div class="query-item">未找到相关申请记录</div>';
+                return;
+            }
+
+            results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(request => {
+                const div = document.createElement('div');
+                div.className = 'query-item';
+                div.innerHTML = `
+                    <div class="status ${getStatusClass(request.status)}">${request.status || '待审批'}</div>
+                    <h3>${request.applicantName}（${request.company}）</h3>
+                    <p><strong>受访人：</strong>${request.interviewee}</p>
+                    <p><strong>来访时间：</strong>${new Date(request.visitTime).toLocaleString()}</p>
+                    <p><strong>联系电话：</strong>${request.phone}</p>
+                    <p><strong>事由：</strong>${request.purpose}</p>
+                    <p><strong>同行人员：</strong>${request.companionNumber}人（${request.companionNames}）</p>
+                    <p><strong>申请时间：</strong>${new Date(request.timestamp).toLocaleString()}</p>
+                `;
+                resultContainer.appendChild(div);
+            });
         }
 
         function updateStorage() {
